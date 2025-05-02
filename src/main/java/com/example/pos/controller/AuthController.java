@@ -1,17 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.example.pos.controller;
 
-/**
- *
- * @author CompuTop
- */
-import com.example.pos.dto.AuthRequest;
-import com.example.pos.dto.AuthResponse;
+import com.example.pos.auth.JwtUtil;
+import com.example.pos.dto.auth.AuthRequest;
+import com.example.pos.dto.auth.AuthResponse;
+import com.example.pos.dto.auth.RefreshTokenRequest;
 import com.example.pos.model.User;
-import com.example.pos.security.JwtUtil;
 import com.example.pos.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
     @Autowired
@@ -31,8 +24,7 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // Simple in-memory storage for refresh tokens
-    private Map<String, String> refreshTokenStore = new HashMap<>();
+    private final Map<String, String> refreshTokenStore = new HashMap<>();
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest request) {
@@ -41,12 +33,11 @@ public class AuthController {
             return ResponseEntity.status(401).body("Invalid credentials");
         }
 
-        String accessToken = jwtUtil.generateToken(user.getEmail());
-        String refreshToken = UUID.randomUUID().toString(); // ✅ Generate unique refresh token
+        String accessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
+        String refreshToken = UUID.randomUUID().toString();
 
-        // store refresh token
         refreshTokenStore.put(refreshToken, user.getEmail());
-        user.setRefreshToken(refreshToken); // optional for debugging
+        user.setRefreshToken(refreshToken);
 
         return ResponseEntity.ok(new AuthResponse(
                 accessToken,
@@ -56,12 +47,8 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestHeader("Authorization") String refreshHeader) {
-        if (!refreshHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(400).body("Missing Bearer token");
-        }
-
-        String refreshToken = refreshHeader.substring(7); // remove "Bearer "
+    public ResponseEntity<?> refresh(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+        String refreshToken = refreshTokenRequest.refreshToken;
 
         String email = refreshTokenStore.get(refreshToken);
         if (email == null) {
@@ -73,11 +60,11 @@ public class AuthController {
             return ResponseEntity.status(404).body("User not found");
         }
 
-        String newAccessToken = jwtUtil.generateToken(user.getEmail());
+        String newAccessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
 
         return ResponseEntity.ok(new AuthResponse(
                 newAccessToken,
-                refreshToken, // keep the same one
+                refreshToken,
                 user.getRole().name()
         ));
     }

@@ -1,20 +1,15 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.example.pos.service;
 
-/**
- *
- * @author CompuTop
- */
-import com.example.pos.dto.UserRequest;
+import com.example.pos.common.NotFoundException;
+import com.example.pos.dto.user.UserRequest;
 import com.example.pos.model.Role;
 import com.example.pos.model.User;
 import com.example.pos.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class UserService {
@@ -23,6 +18,14 @@ public class UserService {
     private UserRepository userRepository;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public User getUserById(Long id) {
+        return userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found with id: " + id));
+    }
 
     public User createUser(UserRequest request) {
         User user = new User();
