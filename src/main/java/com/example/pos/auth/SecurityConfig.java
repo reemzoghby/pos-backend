@@ -24,6 +24,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .antMatchers("/api/auth/**").permitAll()
 
                         // User Endpoint permissions
@@ -33,7 +34,7 @@ public class SecurityConfig {
                         .antMatchers(HttpMethod.GET, "/api/users/**").authenticated()
 
                         // Product Endpoint permissions
-                        .antMatchers("/api/products").hasRole("ADMIN")
+                        .antMatchers("/api/products").authenticated()
                         .antMatchers("/api/products/**").hasRole("ADMIN")
 
                         // Purchases Endpoint permissions
